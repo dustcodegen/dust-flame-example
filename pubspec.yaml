@@ -1,0 +1,23 @@
+name: dust_flame_example
+description: A playable Flame prototype for Dust-generated scoped ViewModels.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  dust_dart: 0.3.1
+  dust_flutter: 0.3.1
+  flame: 1.38.2
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  analyzer: 8.4.1
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
