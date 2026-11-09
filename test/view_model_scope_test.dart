@@ -186,6 +186,25 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     expect(model.listenersAtDisposal, isFalse);
   });
+
+  testWidgets('a failing replacement preserves the active watcher', (
+    tester,
+  ) async {
+    final key = ViewModelKey(_CounterModel.new);
+    final child = _WatchingComponent(key);
+    final game = _ScopeGame([
+      ViewModelScope(children: [child]),
+    ]);
+    await _mount(tester, game);
+
+    expect(
+      () => child.watchViewModel(key, (_) => throw StateError('bad callback')),
+      throwsStateError,
+    );
+    child.readViewModel(key).setCount(1);
+    expect(child.counts, [0, 1]);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }
 
 Future<void> _mount(WidgetTester tester, _ScopeGame game) async {

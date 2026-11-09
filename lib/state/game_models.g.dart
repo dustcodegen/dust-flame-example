@@ -13,22 +13,22 @@
 
 part of 'game_models.dart';
 
-mixin _$CoinsState {
+mixin _$ScoreState {
   @override
   bool operator ==(Object other) {
-    final self = this as CoinsState;
+    final self = this as ScoreState;
     return identical(this, other) ||
-        other is CoinsState &&
+        other is ScoreState &&
             runtimeType == other.runtimeType &&
-            other.count == self.count;
+            other.points == self.points;
   }
 
   @override
   int get hashCode {
-    final self = this as CoinsState;
+    final self = this as ScoreState;
     return Object.hashAll([
       runtimeType,
-      self.count,
+      self.points,
     ]);
   }
 }
@@ -53,61 +53,63 @@ mixin _$HealthState {
   }
 }
 
-mixin _$LevelState {
+mixin _$ChallengeState {
   @override
   bool operator ==(Object other) {
-    final self = this as LevelState;
+    final self = this as ChallengeState;
     return identical(this, other) ||
-        other is LevelState &&
+        other is ChallengeState &&
             runtimeType == other.runtimeType &&
-            other.number == self.number;
+            other.round == self.round &&
+            other.matched == self.matched;
   }
 
   @override
   int get hashCode {
-    final self = this as LevelState;
+    final self = this as ChallengeState;
     return Object.hashAll([
       runtimeType,
-      self.number,
+      self.round,
+      self.matched,
     ]);
   }
 }
 
-/// Base class generated for CoinsViewModel.
+/// Base class generated for ScoreViewModel.
 ///
 /// Extend it from your ViewModel and forward typed args:
 ///
 /// ```dart
-/// final class CoinsViewModel extends $CoinsViewModel {
-///   CoinsViewModel(super.args);
+/// final class ScoreViewModel extends $ScoreViewModel {
+///   ScoreViewModel(super.args);
 /// }
 /// ```
-abstract class $CoinsViewModel extends ViewModelBase<CoinsState, ViewModelArgs> {
-  $CoinsViewModel(super.args) : super(initialState: const CoinsState());
+abstract class $ScoreViewModel extends ViewModelBase<ScoreState, ViewModelArgs> {
+  $ScoreViewModel(super.args) : super(initialState: const ScoreState());
 }
 
-/// Reads CoinsViewModel state from `BuildContext`.
+/// Reads ScoreViewModel state from `BuildContext`.
 ///
 /// Read `value` when the widget should rebuild for any state change.
 ///
 /// ```dart
-/// final state = context.watchCoinsViewModel().value;
+/// final state = context.watchScoreViewModel().value;
 /// ```
-class _$CoinsViewModelProxy {
-  _$CoinsViewModelProxy(this._context);
+class _$ScoreViewModelProxy {
+  _$ScoreViewModelProxy(this._context);
 
   final BuildContext _context;
 
-  CoinsState get value {
-    return CoinsViewModelScope.of(_context).value;
+  ScoreState get value {
+    return ScoreViewModelScope.of(_context).value;
   }
 }
 
-/// Rebuilds when a selected CoinsState value changes.
+/// Rebuilds when a selected ScoreState value changes.
 ///
 /// Use this for widgets that depend on one field or derived value.
-class CoinsViewModelSelector<R> extends StatefulWidget {
-  const CoinsViewModelSelector({
+class ScoreViewModelSelector<R> extends StatefulWidget {
+  const ScoreViewModelSelector({
     super.key,
     required this.selector,
     required this.builder,
@@ -115,24 +117,24 @@ class CoinsViewModelSelector<R> extends StatefulWidget {
     this.equals,
   });
 
-  final R Function(CoinsState state) selector;
+  final R Function(ScoreState state) selector;
   final Widget Function(BuildContext context, R value, Widget? child) builder;
   final Widget? child;
   final bool Function(R previous, R next)? equals;
 
   @override
-  State<CoinsViewModelSelector<R>> createState() => _CoinsViewModelSelectorState<R>();
+  State<ScoreViewModelSelector<R>> createState() => _ScoreViewModelSelectorState<R>();
 }
 
-class _CoinsViewModelSelectorState<R> extends State<CoinsViewModelSelector<R>> {
-  CoinsViewModel? _viewModel;
+class _ScoreViewModelSelectorState<R> extends State<ScoreViewModelSelector<R>> {
+  ScoreViewModel? _viewModel;
   R? _selected;
   bool _hasSelected = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final nextViewModel = CoinsViewModelScope._watchInstance(context);
+    final nextViewModel = ScoreViewModelScope._watchInstance(context);
     if (identical(_viewModel, nextViewModel)) return;
     _viewModel?.removeListener(_onViewModelStateChanged);
     _viewModel = nextViewModel;
@@ -141,7 +143,7 @@ class _CoinsViewModelSelectorState<R> extends State<CoinsViewModelSelector<R>> {
   }
 
   @override
-  void didUpdateWidget(CoinsViewModelSelector<R> oldWidget) {
+  void didUpdateWidget(ScoreViewModelSelector<R> oldWidget) {
     super.didUpdateWidget(oldWidget);
     _selectCurrent(force: true);
   }
@@ -189,21 +191,21 @@ class _CoinsViewModelSelectorState<R> extends State<CoinsViewModelSelector<R>> {
   }
 }
 
-/// Creates and provides CoinsViewModel to descendants.
+/// Creates and provides ScoreViewModel to descendants.
 ///
 /// The default constructor owns the ViewModel. Use `.value` for externally
 /// owned ViewModels.
 ///
 /// ```dart
-/// CoinsViewModelScope(
+/// ScoreViewModelScope(
 ///   args: (context) => ViewModelArgs(...),
-///   create: (context, args) => CoinsViewModel(args),
+///   create: (context, args) => ScoreViewModel(args),
 ///   child: const FeaturePage(),
 /// )
 /// ```
-class CoinsViewModelScope extends StatefulWidget {
-  /// Creates and owns CoinsViewModel from typed args.
-  const CoinsViewModelScope({
+class ScoreViewModelScope extends StatefulWidget {
+  /// Creates and owns ScoreViewModel from typed args.
+  const ScoreViewModelScope({
     super.key,
     required this.args,
     required this.create,
@@ -211,49 +213,49 @@ class CoinsViewModelScope extends StatefulWidget {
     this.identity,
   }) : value = null;
 
-  /// Provides an externally owned CoinsViewModel without disposing it.
-  const CoinsViewModelScope.value({
+  /// Provides an externally owned ScoreViewModel without disposing it.
+  const ScoreViewModelScope.value({
     super.key,
-    required CoinsViewModel this.value,
+    required ScoreViewModel this.value,
     required this.child,
   }) : args = null,
        create = null,
        identity = null;
 
   final ViewModelArgs Function(BuildContext context)? args;
-  final CoinsViewModel Function(BuildContext context, ViewModelArgs args)? create;
+  final ScoreViewModel Function(BuildContext context, ViewModelArgs args)? create;
   final Object? Function(BuildContext context)? identity;
-  final CoinsViewModel? value;
+  final ScoreViewModel? value;
   final Widget child;
 
-  /// Reads CoinsViewModel without rebuilding when state changes.
-  static CoinsViewModel read(BuildContext context) {
+  /// Reads ScoreViewModel without rebuilding when state changes.
+  static ScoreViewModel read(BuildContext context) {
     final scope = context
-        .getElementForInheritedWidgetOfExactType<_CoinsViewModelInstance>()
-        ?.widget as _CoinsViewModelInstance?;
-    if (scope == null) throw StateError('No CoinsViewModelScope found in context.');
+        .getElementForInheritedWidgetOfExactType<_ScoreViewModelInstance>()
+        ?.widget as _ScoreViewModelInstance?;
+    if (scope == null) throw StateError('No ScoreViewModelScope found in context.');
     return scope.viewModel;
   }
 
-  static CoinsViewModel _watchInstance(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<_CoinsViewModelInstance>();
-    if (scope == null) throw StateError('No CoinsViewModelScope found in context.');
+  static ScoreViewModel _watchInstance(BuildContext context) {
+    final scope = context.dependOnInheritedWidgetOfExactType<_ScoreViewModelInstance>();
+    if (scope == null) throw StateError('No ScoreViewModelScope found in context.');
     return scope.viewModel;
   }
 
-  /// Watches CoinsViewModel and rebuilds when state changes.
-  static CoinsViewModel of(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<_CoinsViewModelInherited>();
-    if (scope == null) throw StateError('No CoinsViewModelScope found in context.');
+  /// Watches ScoreViewModel and rebuilds when state changes.
+  static ScoreViewModel of(BuildContext context) {
+    final scope = context.dependOnInheritedWidgetOfExactType<_ScoreViewModelInherited>();
+    if (scope == null) throw StateError('No ScoreViewModelScope found in context.');
     return scope.viewModel;
   }
 
   @override
-  State<CoinsViewModelScope> createState() => _CoinsViewModelScopeState();
+  State<ScoreViewModelScope> createState() => _ScoreViewModelScopeState();
 }
 
-class _CoinsViewModelScopeState extends State<CoinsViewModelScope> {
-  CoinsViewModel? _viewModel;
+class _ScoreViewModelScopeState extends State<ScoreViewModelScope> {
+  ScoreViewModel? _viewModel;
   Object? _identity;
   bool _ownsViewModel = false;
 
@@ -273,7 +275,7 @@ class _CoinsViewModelScopeState extends State<CoinsViewModelScope> {
   }
 
   @override
-  void didUpdateWidget(CoinsViewModelScope oldWidget) {
+  void didUpdateWidget(ScoreViewModelScope oldWidget) {
     super.didUpdateWidget(oldWidget);
     final external = widget.value;
     if (external != null) {
@@ -290,13 +292,13 @@ class _CoinsViewModelScopeState extends State<CoinsViewModelScope> {
     }
   }
 
-  CoinsViewModel _createOwnedViewModel() {
+  ScoreViewModel _createOwnedViewModel() {
     final argsFactory = widget.args;
     final create = widget.create;
     if (argsFactory == null || create == null) {
-      throw StateError('Owned CoinsViewModelScope requires args and create.');
+      throw StateError('Owned ScoreViewModelScope requires args and create.');
     }
-    late final CoinsViewModel created;
+    late final ScoreViewModel created;
     try {
       created = create(context, argsFactory(context));
     } catch (error, stackTrace) {
@@ -306,7 +308,7 @@ class _CoinsViewModelScopeState extends State<CoinsViewModelScope> {
   }
 
   void _replaceViewModel(
-    CoinsViewModel nextViewModel, {
+    ScoreViewModel nextViewModel, {
     required bool ownsViewModel,
     bool notify = true,
   }) {
@@ -326,7 +328,7 @@ class _CoinsViewModelScopeState extends State<CoinsViewModelScope> {
     if (notify && mounted) setState(() {});
   }
 
-  void _scheduleInit(CoinsViewModel viewModel) {
+  void _scheduleInit(ScoreViewModel viewModel) {
     scheduleMicrotask(() async {
       if (!mounted || !identical(_viewModel, viewModel)) return;
       try {
@@ -337,7 +339,7 @@ class _CoinsViewModelScopeState extends State<CoinsViewModelScope> {
             exception: error,
             stack: stackTrace,
             library: 'dust state',
-            context: ErrorDescription('CoinsViewModelScope init failed'),
+            context: ErrorDescription('ScoreViewModelScope init failed'),
           ),
         );
       }
@@ -360,11 +362,11 @@ class _CoinsViewModelScopeState extends State<CoinsViewModelScope> {
   Widget build(BuildContext context) {
     final viewModel = _viewModel;
     if (viewModel == null) {
-      throw StateError('CoinsViewModelScope built before its view model was initialized.');
+      throw StateError('ScoreViewModelScope built before its view model was initialized.');
     }
-    return _CoinsViewModelInstance(
+    return _ScoreViewModelInstance(
       viewModel: viewModel,
-      child: _CoinsViewModelInherited(
+      child: _ScoreViewModelInherited(
         viewModel: viewModel,
         state: viewModel.value,
         child: widget.child,
@@ -373,57 +375,57 @@ class _CoinsViewModelScopeState extends State<CoinsViewModelScope> {
   }
 }
 
-class _CoinsViewModelInstance extends InheritedWidget {
-  const _CoinsViewModelInstance({required this.viewModel, required super.child});
+class _ScoreViewModelInstance extends InheritedWidget {
+  const _ScoreViewModelInstance({required this.viewModel, required super.child});
 
-  final CoinsViewModel viewModel;
+  final ScoreViewModel viewModel;
 
   @override
-  bool updateShouldNotify(_CoinsViewModelInstance oldWidget) {
+  bool updateShouldNotify(_ScoreViewModelInstance oldWidget) {
     return !identical(viewModel, oldWidget.viewModel);
   }
 }
 
-class _CoinsViewModelInherited extends InheritedWidget {
-  const _CoinsViewModelInherited({required this.viewModel, required this.state, required super.child});
+class _ScoreViewModelInherited extends InheritedWidget {
+  const _ScoreViewModelInherited({required this.viewModel, required this.state, required super.child});
 
-  final CoinsViewModel viewModel;
-  final CoinsState state;
+  final ScoreViewModel viewModel;
+  final ScoreState state;
 
   @override
-  bool updateShouldNotify(_CoinsViewModelInherited oldWidget) {
+  bool updateShouldNotify(_ScoreViewModelInherited oldWidget) {
     return !identical(viewModel, oldWidget.viewModel) || state != oldWidget.state;
   }
 }
 
-/// Handles one-shot effects from CoinsViewModel.
+/// Handles one-shot effects from ScoreViewModel.
 ///
 /// Effects are delivered without changing state and do not rebuild `child`.
 ///
 /// ```dart
-/// CoinsViewModelListener(
+/// ScoreViewModelListener(
 ///   listener: onEffect,
 ///   child: const FeaturePage(),
 /// )
 /// ```
-class CoinsViewModelListener extends StatefulWidget {
-  const CoinsViewModelListener({super.key, required this.listener, required this.child});
+class ScoreViewModelListener extends StatefulWidget {
+  const ScoreViewModelListener({super.key, required this.listener, required this.child});
 
   final void Function(BuildContext context, Object effect) listener;
   final Widget child;
 
   @override
-  State<CoinsViewModelListener> createState() => _CoinsViewModelListenerState();
+  State<ScoreViewModelListener> createState() => _ScoreViewModelListenerState();
 }
 
-class _CoinsViewModelListenerState extends State<CoinsViewModelListener> {
+class _ScoreViewModelListenerState extends State<ScoreViewModelListener> {
   StreamSubscription<Object>? _sub;
-  CoinsViewModel? _viewModel;
+  ScoreViewModel? _viewModel;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final nextViewModel = CoinsViewModelScope._watchInstance(context);
+    final nextViewModel = ScoreViewModelScope._watchInstance(context);
     if (_viewModel == nextViewModel) return;
     _sub?.cancel();
     _viewModel = nextViewModel;
@@ -444,18 +446,18 @@ class _CoinsViewModelListenerState extends State<CoinsViewModelListener> {
   Widget build(BuildContext context) => widget.child;
 }
 
-/// BuildContext helpers generated for CoinsViewModel.
+/// BuildContext helpers generated for ScoreViewModel.
 ///
 /// ```dart
-/// final vm = context.readCoinsViewModel();
-/// final state = context.watchCoinsViewModel().value;
+/// final vm = context.readScoreViewModel();
+/// final state = context.watchScoreViewModel().value;
 /// ```
-extension CoinsViewModelBuildContext on BuildContext {
-  _$CoinsViewModelProxy watchCoinsViewModel() {
-    return _$CoinsViewModelProxy(this);
+extension ScoreViewModelBuildContext on BuildContext {
+  _$ScoreViewModelProxy watchScoreViewModel() {
+    return _$ScoreViewModelProxy(this);
   }
 
-  CoinsViewModel readCoinsViewModel() => CoinsViewModelScope.read(this);
+  ScoreViewModel readScoreViewModel() => ScoreViewModelScope.read(this);
 }
 /// Base class generated for HealthViewModel.
 ///
@@ -841,41 +843,41 @@ extension HealthViewModelBuildContext on BuildContext {
 
   HealthViewModel readHealthViewModel() => HealthViewModelScope.read(this);
 }
-/// Base class generated for LevelViewModel.
+/// Base class generated for ChallengeViewModel.
 ///
 /// Extend it from your ViewModel and forward typed args:
 ///
 /// ```dart
-/// final class LevelViewModel extends $LevelViewModel {
-///   LevelViewModel(super.args);
+/// final class ChallengeViewModel extends $ChallengeViewModel {
+///   ChallengeViewModel(super.args);
 /// }
 /// ```
-abstract class $LevelViewModel extends ViewModelBase<LevelState, ViewModelArgs> {
-  $LevelViewModel(super.args) : super(initialState: const LevelState());
+abstract class $ChallengeViewModel extends ViewModelBase<ChallengeState, ViewModelArgs> {
+  $ChallengeViewModel(super.args) : super(initialState: const ChallengeState());
 }
 
-/// Reads LevelViewModel state from `BuildContext`.
+/// Reads ChallengeViewModel state from `BuildContext`.
 ///
 /// Read `value` when the widget should rebuild for any state change.
 ///
 /// ```dart
-/// final state = context.watchLevelViewModel().value;
+/// final state = context.watchChallengeViewModel().value;
 /// ```
-class _$LevelViewModelProxy {
-  _$LevelViewModelProxy(this._context);
+class _$ChallengeViewModelProxy {
+  _$ChallengeViewModelProxy(this._context);
 
   final BuildContext _context;
 
-  LevelState get value {
-    return LevelViewModelScope.of(_context).value;
+  ChallengeState get value {
+    return ChallengeViewModelScope.of(_context).value;
   }
 }
 
-/// Rebuilds when a selected LevelState value changes.
+/// Rebuilds when a selected ChallengeState value changes.
 ///
 /// Use this for widgets that depend on one field or derived value.
-class LevelViewModelSelector<R> extends StatefulWidget {
-  const LevelViewModelSelector({
+class ChallengeViewModelSelector<R> extends StatefulWidget {
+  const ChallengeViewModelSelector({
     super.key,
     required this.selector,
     required this.builder,
@@ -883,24 +885,24 @@ class LevelViewModelSelector<R> extends StatefulWidget {
     this.equals,
   });
 
-  final R Function(LevelState state) selector;
+  final R Function(ChallengeState state) selector;
   final Widget Function(BuildContext context, R value, Widget? child) builder;
   final Widget? child;
   final bool Function(R previous, R next)? equals;
 
   @override
-  State<LevelViewModelSelector<R>> createState() => _LevelViewModelSelectorState<R>();
+  State<ChallengeViewModelSelector<R>> createState() => _ChallengeViewModelSelectorState<R>();
 }
 
-class _LevelViewModelSelectorState<R> extends State<LevelViewModelSelector<R>> {
-  LevelViewModel? _viewModel;
+class _ChallengeViewModelSelectorState<R> extends State<ChallengeViewModelSelector<R>> {
+  ChallengeViewModel? _viewModel;
   R? _selected;
   bool _hasSelected = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final nextViewModel = LevelViewModelScope._watchInstance(context);
+    final nextViewModel = ChallengeViewModelScope._watchInstance(context);
     if (identical(_viewModel, nextViewModel)) return;
     _viewModel?.removeListener(_onViewModelStateChanged);
     _viewModel = nextViewModel;
@@ -909,7 +911,7 @@ class _LevelViewModelSelectorState<R> extends State<LevelViewModelSelector<R>> {
   }
 
   @override
-  void didUpdateWidget(LevelViewModelSelector<R> oldWidget) {
+  void didUpdateWidget(ChallengeViewModelSelector<R> oldWidget) {
     super.didUpdateWidget(oldWidget);
     _selectCurrent(force: true);
   }
@@ -957,21 +959,21 @@ class _LevelViewModelSelectorState<R> extends State<LevelViewModelSelector<R>> {
   }
 }
 
-/// Creates and provides LevelViewModel to descendants.
+/// Creates and provides ChallengeViewModel to descendants.
 ///
 /// The default constructor owns the ViewModel. Use `.value` for externally
 /// owned ViewModels.
 ///
 /// ```dart
-/// LevelViewModelScope(
+/// ChallengeViewModelScope(
 ///   args: (context) => ViewModelArgs(...),
-///   create: (context, args) => LevelViewModel(args),
+///   create: (context, args) => ChallengeViewModel(args),
 ///   child: const FeaturePage(),
 /// )
 /// ```
-class LevelViewModelScope extends StatefulWidget {
-  /// Creates and owns LevelViewModel from typed args.
-  const LevelViewModelScope({
+class ChallengeViewModelScope extends StatefulWidget {
+  /// Creates and owns ChallengeViewModel from typed args.
+  const ChallengeViewModelScope({
     super.key,
     required this.args,
     required this.create,
@@ -979,49 +981,49 @@ class LevelViewModelScope extends StatefulWidget {
     this.identity,
   }) : value = null;
 
-  /// Provides an externally owned LevelViewModel without disposing it.
-  const LevelViewModelScope.value({
+  /// Provides an externally owned ChallengeViewModel without disposing it.
+  const ChallengeViewModelScope.value({
     super.key,
-    required LevelViewModel this.value,
+    required ChallengeViewModel this.value,
     required this.child,
   }) : args = null,
        create = null,
        identity = null;
 
   final ViewModelArgs Function(BuildContext context)? args;
-  final LevelViewModel Function(BuildContext context, ViewModelArgs args)? create;
+  final ChallengeViewModel Function(BuildContext context, ViewModelArgs args)? create;
   final Object? Function(BuildContext context)? identity;
-  final LevelViewModel? value;
+  final ChallengeViewModel? value;
   final Widget child;
 
-  /// Reads LevelViewModel without rebuilding when state changes.
-  static LevelViewModel read(BuildContext context) {
+  /// Reads ChallengeViewModel without rebuilding when state changes.
+  static ChallengeViewModel read(BuildContext context) {
     final scope = context
-        .getElementForInheritedWidgetOfExactType<_LevelViewModelInstance>()
-        ?.widget as _LevelViewModelInstance?;
-    if (scope == null) throw StateError('No LevelViewModelScope found in context.');
+        .getElementForInheritedWidgetOfExactType<_ChallengeViewModelInstance>()
+        ?.widget as _ChallengeViewModelInstance?;
+    if (scope == null) throw StateError('No ChallengeViewModelScope found in context.');
     return scope.viewModel;
   }
 
-  static LevelViewModel _watchInstance(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<_LevelViewModelInstance>();
-    if (scope == null) throw StateError('No LevelViewModelScope found in context.');
+  static ChallengeViewModel _watchInstance(BuildContext context) {
+    final scope = context.dependOnInheritedWidgetOfExactType<_ChallengeViewModelInstance>();
+    if (scope == null) throw StateError('No ChallengeViewModelScope found in context.');
     return scope.viewModel;
   }
 
-  /// Watches LevelViewModel and rebuilds when state changes.
-  static LevelViewModel of(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<_LevelViewModelInherited>();
-    if (scope == null) throw StateError('No LevelViewModelScope found in context.');
+  /// Watches ChallengeViewModel and rebuilds when state changes.
+  static ChallengeViewModel of(BuildContext context) {
+    final scope = context.dependOnInheritedWidgetOfExactType<_ChallengeViewModelInherited>();
+    if (scope == null) throw StateError('No ChallengeViewModelScope found in context.');
     return scope.viewModel;
   }
 
   @override
-  State<LevelViewModelScope> createState() => _LevelViewModelScopeState();
+  State<ChallengeViewModelScope> createState() => _ChallengeViewModelScopeState();
 }
 
-class _LevelViewModelScopeState extends State<LevelViewModelScope> {
-  LevelViewModel? _viewModel;
+class _ChallengeViewModelScopeState extends State<ChallengeViewModelScope> {
+  ChallengeViewModel? _viewModel;
   Object? _identity;
   bool _ownsViewModel = false;
 
@@ -1041,7 +1043,7 @@ class _LevelViewModelScopeState extends State<LevelViewModelScope> {
   }
 
   @override
-  void didUpdateWidget(LevelViewModelScope oldWidget) {
+  void didUpdateWidget(ChallengeViewModelScope oldWidget) {
     super.didUpdateWidget(oldWidget);
     final external = widget.value;
     if (external != null) {
@@ -1058,13 +1060,13 @@ class _LevelViewModelScopeState extends State<LevelViewModelScope> {
     }
   }
 
-  LevelViewModel _createOwnedViewModel() {
+  ChallengeViewModel _createOwnedViewModel() {
     final argsFactory = widget.args;
     final create = widget.create;
     if (argsFactory == null || create == null) {
-      throw StateError('Owned LevelViewModelScope requires args and create.');
+      throw StateError('Owned ChallengeViewModelScope requires args and create.');
     }
-    late final LevelViewModel created;
+    late final ChallengeViewModel created;
     try {
       created = create(context, argsFactory(context));
     } catch (error, stackTrace) {
@@ -1074,7 +1076,7 @@ class _LevelViewModelScopeState extends State<LevelViewModelScope> {
   }
 
   void _replaceViewModel(
-    LevelViewModel nextViewModel, {
+    ChallengeViewModel nextViewModel, {
     required bool ownsViewModel,
     bool notify = true,
   }) {
@@ -1094,7 +1096,7 @@ class _LevelViewModelScopeState extends State<LevelViewModelScope> {
     if (notify && mounted) setState(() {});
   }
 
-  void _scheduleInit(LevelViewModel viewModel) {
+  void _scheduleInit(ChallengeViewModel viewModel) {
     scheduleMicrotask(() async {
       if (!mounted || !identical(_viewModel, viewModel)) return;
       try {
@@ -1105,7 +1107,7 @@ class _LevelViewModelScopeState extends State<LevelViewModelScope> {
             exception: error,
             stack: stackTrace,
             library: 'dust state',
-            context: ErrorDescription('LevelViewModelScope init failed'),
+            context: ErrorDescription('ChallengeViewModelScope init failed'),
           ),
         );
       }
@@ -1128,11 +1130,11 @@ class _LevelViewModelScopeState extends State<LevelViewModelScope> {
   Widget build(BuildContext context) {
     final viewModel = _viewModel;
     if (viewModel == null) {
-      throw StateError('LevelViewModelScope built before its view model was initialized.');
+      throw StateError('ChallengeViewModelScope built before its view model was initialized.');
     }
-    return _LevelViewModelInstance(
+    return _ChallengeViewModelInstance(
       viewModel: viewModel,
-      child: _LevelViewModelInherited(
+      child: _ChallengeViewModelInherited(
         viewModel: viewModel,
         state: viewModel.value,
         child: widget.child,
@@ -1141,57 +1143,57 @@ class _LevelViewModelScopeState extends State<LevelViewModelScope> {
   }
 }
 
-class _LevelViewModelInstance extends InheritedWidget {
-  const _LevelViewModelInstance({required this.viewModel, required super.child});
+class _ChallengeViewModelInstance extends InheritedWidget {
+  const _ChallengeViewModelInstance({required this.viewModel, required super.child});
 
-  final LevelViewModel viewModel;
+  final ChallengeViewModel viewModel;
 
   @override
-  bool updateShouldNotify(_LevelViewModelInstance oldWidget) {
+  bool updateShouldNotify(_ChallengeViewModelInstance oldWidget) {
     return !identical(viewModel, oldWidget.viewModel);
   }
 }
 
-class _LevelViewModelInherited extends InheritedWidget {
-  const _LevelViewModelInherited({required this.viewModel, required this.state, required super.child});
+class _ChallengeViewModelInherited extends InheritedWidget {
+  const _ChallengeViewModelInherited({required this.viewModel, required this.state, required super.child});
 
-  final LevelViewModel viewModel;
-  final LevelState state;
+  final ChallengeViewModel viewModel;
+  final ChallengeState state;
 
   @override
-  bool updateShouldNotify(_LevelViewModelInherited oldWidget) {
+  bool updateShouldNotify(_ChallengeViewModelInherited oldWidget) {
     return !identical(viewModel, oldWidget.viewModel) || state != oldWidget.state;
   }
 }
 
-/// Handles one-shot effects from LevelViewModel.
+/// Handles one-shot effects from ChallengeViewModel.
 ///
 /// Effects are delivered without changing state and do not rebuild `child`.
 ///
 /// ```dart
-/// LevelViewModelListener(
+/// ChallengeViewModelListener(
 ///   listener: onEffect,
 ///   child: const FeaturePage(),
 /// )
 /// ```
-class LevelViewModelListener extends StatefulWidget {
-  const LevelViewModelListener({super.key, required this.listener, required this.child});
+class ChallengeViewModelListener extends StatefulWidget {
+  const ChallengeViewModelListener({super.key, required this.listener, required this.child});
 
   final void Function(BuildContext context, Object effect) listener;
   final Widget child;
 
   @override
-  State<LevelViewModelListener> createState() => _LevelViewModelListenerState();
+  State<ChallengeViewModelListener> createState() => _ChallengeViewModelListenerState();
 }
 
-class _LevelViewModelListenerState extends State<LevelViewModelListener> {
+class _ChallengeViewModelListenerState extends State<ChallengeViewModelListener> {
   StreamSubscription<Object>? _sub;
-  LevelViewModel? _viewModel;
+  ChallengeViewModel? _viewModel;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final nextViewModel = LevelViewModelScope._watchInstance(context);
+    final nextViewModel = ChallengeViewModelScope._watchInstance(context);
     if (_viewModel == nextViewModel) return;
     _sub?.cancel();
     _viewModel = nextViewModel;
@@ -1212,16 +1214,16 @@ class _LevelViewModelListenerState extends State<LevelViewModelListener> {
   Widget build(BuildContext context) => widget.child;
 }
 
-/// BuildContext helpers generated for LevelViewModel.
+/// BuildContext helpers generated for ChallengeViewModel.
 ///
 /// ```dart
-/// final vm = context.readLevelViewModel();
-/// final state = context.watchLevelViewModel().value;
+/// final vm = context.readChallengeViewModel();
+/// final state = context.watchChallengeViewModel().value;
 /// ```
-extension LevelViewModelBuildContext on BuildContext {
-  _$LevelViewModelProxy watchLevelViewModel() {
-    return _$LevelViewModelProxy(this);
+extension ChallengeViewModelBuildContext on BuildContext {
+  _$ChallengeViewModelProxy watchChallengeViewModel() {
+    return _$ChallengeViewModelProxy(this);
   }
 
-  LevelViewModel readLevelViewModel() => LevelViewModelScope.read(this);
+  ChallengeViewModel readChallengeViewModel() => ChallengeViewModelScope.read(this);
 }

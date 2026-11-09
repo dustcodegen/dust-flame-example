@@ -1,167 +1,192 @@
+import 'package:flame/components.dart';
 import 'package:flutter/painting.dart';
 
-import 'package:flame/components.dart';
-import 'package:flame/events.dart';
-
-import '../state/game_access.generated.dart';
-import 'coin_dodge_game.dart';
+import '../state.dart';
+import 'action_panel.dart';
+import 'game_layout.dart';
 import 'game_style.dart';
 
 class GameHud extends Component {
   GameHud() {
-    watchCoinsViewModel((coins) {
-      _coinCount = coins.state.count;
-      _coins.text = '${coins.state.count}'.padLeft(2, '0');
+    watchScoreViewModel((score) {
+      _score.text = '${score.state.points}'.padLeft(2, '0');
     });
     watchHealthViewModel((health) {
-      _health.text = '${health.state.lives} / 3';
-      if (health.state.lives == 0) add(GameOverPanel());
+      _lives = health.state.lives;
+      _health.text = '$_lives / 3';
+      _updatePanel();
     });
-    watchLevelViewModel((level) => _level.text = '${level.state.number}');
+    watchChallengeViewModel((challenge) {
+      final state = challenge.state;
+      _language.text = state.challenge.language.toUpperCase();
+      _round.text = 'ROUND ${state.round + 1}';
+      _targetTitle.text = state.complete
+          ? 'Code complete'
+          : 'NEXT  ${state.expectedToken}';
+      _targetTitle.textRenderer = GameStyle.caption(
+        color: state.complete ? GameStyle.mint : GameStyle.gold,
+      );
+      _matched.text = '${state.matched} / ${state.challenge.parts.length}';
+      _code.show(state.challenge.parts, state.matched);
+      _complete = state.complete;
+      _updatePanel();
+    });
   }
 
-  final _coins = TextComponent(
-    position: Vector2(40, 102),
-    textRenderer: GameStyle.text(30, GameStyle.gold, bold: true),
+  final _score = TextComponent(
+    anchor: Anchor.topCenter,
+    position: Vector2(GameLayout.statCenters[0], 100),
+    textRenderer: GameStyle.numeric(color: GameStyle.gold),
   );
   final _health = TextComponent(
-    position: Vector2(160, 105),
-    textRenderer: GameStyle.text(24, GameStyle.coral, bold: true),
+    anchor: Anchor.topCenter,
+    position: Vector2(GameLayout.statCenters[1], 100),
+    textRenderer: GameStyle.numeric(color: GameStyle.coral),
   );
-  final _level = TextComponent(
-    position: Vector2(281, 105),
-    textRenderer: GameStyle.text(24, GameStyle.mint, bold: true),
+  final _language = TextComponent(
+    anchor: Anchor.topCenter,
+    position: Vector2(GameLayout.statCenters[2], 100),
+    textRenderer: GameStyle.numeric(color: GameStyle.mint),
   );
-  int _coinCount = 0;
+  final _round = TextComponent(
+    anchor: Anchor.topCenter,
+    position: Vector2(GameLayout.statCenters[2], 143),
+    textRenderer: GameStyle.caption(),
+  );
+  final _targetTitle = TextComponent(
+    position: Vector2(GameLayout.gutter + GameLayout.codeInset, 196),
+    textRenderer: GameStyle.caption(color: GameStyle.gold),
+  );
+  final _matched = TextComponent(
+    anchor: Anchor.topRight,
+    position: Vector2(
+      GameLayout.width - GameLayout.gutter - GameLayout.codeInset,
+      196,
+    ),
+    textRenderer: GameStyle.caption(),
+  );
+  final _code = _CodePreview();
+  int _lives = 3;
+  bool _complete = false;
+  ActionPanel? _panel;
+
+  static final _panelPaint = Paint()..color = GameStyle.panel;
+  static final _statsPanel = RRect.fromRectAndRadius(
+    GameLayout.statsBounds,
+    const Radius.circular(GameLayout.panelRadius),
+  );
+  static final _codePanel = RRect.fromRectAndRadius(
+    GameLayout.codeBounds,
+    const Radius.circular(GameLayout.panelRadius),
+  );
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
     await addAll([
       TextComponent(
-        text: 'COIN DODGE',
-        position: Vector2(24, 25),
-        textRenderer: GameStyle.text(27, GameStyle.white, bold: true),
+        text: 'SYNTAX CATCH',
+        position: Vector2(GameLayout.gutter, 24),
+        textRenderer: GameStyle.display(),
       ),
       TextComponent(
-        text: 'Catch gold. Dodge coral.',
-        position: Vector2(24, 63),
-        textRenderer: GameStyle.text(12, GameStyle.muted),
+        text: 'Catch the next token. Wrong picks cost a life.',
+        position: Vector2(GameLayout.gutter, 63),
+        textRenderer: GameStyle.body(),
       ),
-      _coins,
+      _score,
       _health,
-      _level,
-      _label('COINS', 40),
-      _label('LIVES', 160),
-      _label('LEVEL', 268),
+      _language,
+      _label('SCORE', GameLayout.statCenters[0]),
+      _label('LIVES', GameLayout.statCenters[1]),
+      _round,
+      _targetTitle,
+      _matched,
+      _code,
       TextComponent(
-        text: 'DRAG OR USE THE ARROW KEYS',
+        text: 'Drag or use the arrow keys / A D',
         anchor: Anchor.center,
-        position: Vector2(180, 606),
-        textRenderer: GameStyle.text(10, GameStyle.muted),
-      ),
-      TextComponent(
-        text: 'Every 5 coins makes it faster.',
-        anchor: Anchor.center,
-        position: Vector2(180, 626),
-        textRenderer: GameStyle.text(10, GameStyle.muted),
+        position: Vector2(GameLayout.width / 2, GameLayout.footerY),
+        textRenderer: GameStyle.body(),
       ),
     ]);
   }
 
   TextComponent _label(String label, double x) => TextComponent(
     text: label,
+    anchor: Anchor.topCenter,
     position: Vector2(x, 143),
-    textRenderer: GameStyle.text(10, GameStyle.muted),
+    textRenderer: GameStyle.caption(),
   );
+
+  void _updatePanel() {
+    if (_lives > 0 && !_complete) {
+      _panel?.removeFromParent();
+      _panel = null;
+      return;
+    }
+    final complete = _lives > 0 && _complete;
+    if (_panel?.complete == complete) return;
+    _panel?.removeFromParent();
+    final panel = ActionPanel(complete: complete);
+    _panel = panel;
+    add(panel);
+  }
 
   @override
   void render(Canvas canvas) {
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(24, 92, 312, 74),
-        const Radius.circular(12),
-      ),
-      Paint()..color = GameStyle.panel,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(24, 175, 312, 3),
-        const Radius.circular(2),
-      ),
-      Paint()..color = GameStyle.line,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(24, 175, 312 * (_coinCount % 5) / 5, 3),
-        const Radius.circular(2),
-      ),
-      Paint()..color = GameStyle.gold,
-    );
+    canvas.drawRRect(_statsPanel, _panelPaint);
+    canvas.drawRRect(_codePanel, _panelPaint);
     super.render(canvas);
   }
 }
 
-class GameOverPanel extends PositionComponent
-    with TapCallbacks, HasGameReference<CoinDodgeGame> {
-  GameOverPanel()
-    : super(position: Vector2(24, 238), size: Vector2(312, 184), priority: 100);
+class _CodePreview extends PositionComponent {
+  _CodePreview()
+    : super(
+        position: Vector2(
+          GameLayout.gutter + GameLayout.codeInset,
+          GameLayout.codeTop,
+        ),
+        size: Vector2(GameLayout.codeWidth, GameLayout.codeHeight),
+      );
 
-  final _result = TextComponent(
-    anchor: Anchor.topCenter,
-    position: Vector2(156, 62),
-    textRenderer: GameStyle.text(13, GameStyle.muted),
-  );
+  TextPainter? _painter;
 
-  @override
-  Future<void> onLoad() async {
-    await super.onLoad();
-    await addAll([
-      TextComponent(
-        text: 'NICE RUN.',
-        anchor: Anchor.topCenter,
-        position: Vector2(156, 24),
-        textRenderer: GameStyle.text(26, GameStyle.white, bold: true),
-      ),
-      _result,
-      TextComponent(
-        text: 'PLAY AGAIN',
-        anchor: Anchor.center,
-        position: Vector2(156, 118),
-        textRenderer: GameStyle.text(16, GameStyle.background, bold: true),
-      ),
-      TextComponent(
-        text: 'Tap here or press Space',
-        anchor: Anchor.topCenter,
-        position: Vector2(156, 151),
-        textRenderer: GameStyle.text(10, GameStyle.muted),
-      ),
-    ]);
+  void show(List<CodePart> parts, int matched) {
+    final spans = <TextSpan>[];
+    for (var index = 0; index < parts.length; index++) {
+      final part = parts[index];
+      final color = index < matched
+          ? GameStyle.mint
+          : index == matched
+          ? GameStyle.gold
+          : GameStyle.muted;
+      spans.add(TextSpan(text: part.before));
+      spans.add(
+        TextSpan(
+          text: part.text,
+          style: TextStyle(color: color),
+        ),
+      );
+    }
+    _painter?.dispose();
+    _painter = TextPainter(
+      text: TextSpan(style: GameStyle.code, children: spans),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: GameLayout.codeWidth);
   }
-
-  @override
-  void onMount() {
-    super.onMount();
-    _result.text =
-        '${readCoinsViewModel().state.count} coins / level ${readLevelViewModel().state.number}';
-  }
-
-  @override
-  void onTapDown(TapDownEvent event) => game.restart();
 
   @override
   void render(Canvas canvas) {
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(size.toRect(), const Radius.circular(18)),
-      Paint()..color = GameStyle.panel,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        const Rect.fromLTWH(32, 98, 248, 40),
-        const Radius.circular(10),
-      ),
-      Paint()..color = GameStyle.mint,
-    );
+    _painter?.paint(canvas, Offset.zero);
     super.render(canvas);
+  }
+
+  @override
+  void onRemove() {
+    _painter?.dispose();
+    _painter = null;
+    super.onRemove();
   }
 }

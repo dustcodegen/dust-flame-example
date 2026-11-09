@@ -7,21 +7,39 @@ const _sourcePath = 'lib/state/game_models.dart';
 const _outputPath = 'lib/state/game_access.generated.dart';
 
 Future<void> main(List<String> arguments) async {
-  if (arguments.any((argument) => argument != '--bindings-only')) {
-    stderr.writeln('Usage: dart run tool/generate.dart [--bindings-only]');
+  if (arguments.any(
+    (argument) => argument != '--bindings-only' && argument != '--check',
+  )) {
+    stderr.writeln(
+      'Usage: dart run tool/generate.dart [--check] [--bindings-only]',
+    );
     exitCode = 64;
     return;
   }
 
   try {
+    final check = arguments.contains('--check');
     final source = await File(_sourcePath).readAsString();
     final output = generateBindings(source, sourcePath: _sourcePath);
-    await File(_outputPath).writeAsString(output);
-    stdout.writeln('Generated $_outputPath');
+    final destination = File(_outputPath);
+    if (check) {
+      if (!await destination.exists() ||
+          await destination.readAsString() != output) {
+        stderr.writeln(
+          '$_outputPath is missing or stale. Run dart run tool/generate.dart.',
+        );
+        exitCode = 1;
+        return;
+      }
+      stdout.writeln('Checked $_outputPath');
+    } else {
+      await destination.writeAsString(output);
+      stdout.writeln('Generated $_outputPath');
+    }
 
     if (!arguments.contains('--bindings-only')) {
       final dust = await Process.start('dust', [
-        'build',
+        check ? 'check' : 'build',
       ], mode: ProcessStartMode.inheritStdio);
       final result = await dust.exitCode;
       if (result != 0) {
@@ -96,17 +114,30 @@ import 'game_models.dart';
   );
   for (final name in names) {
     final key = _keyName(name);
-    output.writeln('const ViewModelKey<$name> $key =');
-    output.writeln('    ViewModelKey($name.new);');
+    final declaration = 'const $key = ViewModelKey($name.new);';
+    if (declaration.length <= 80) {
+      output.writeln(declaration);
+    } else {
+      output.writeln('const $key = ViewModelKey(');
+      output.writeln('  $name.new,');
+      output.writeln(');');
+    }
   }
   output.writeln('\nextension GameViewModelAccess on Component {');
-  for (final name in names) {
+  for (final (index, name) in names.indexed) {
+    if (index > 0) output.writeln();
     final key = _keyName(name);
-    output.writeln('  $name read$name() => readViewModel($key);');
+    final readSignature = '  $name read$name() =>';
+    final readBody = 'readViewModel($key);';
+    if ('$readSignature $readBody'.length <= 80) {
+      output.writeln('$readSignature $readBody');
+    } else {
+      output.writeln(readSignature);
+      output.writeln('      $readBody');
+    }
     output.writeln();
     output.writeln('  void watch$name(void Function($name) callback) =>');
     output.writeln('      watchViewModel($key, callback);');
-    output.writeln();
   }
   output.writeln('}');
   return output.toString();

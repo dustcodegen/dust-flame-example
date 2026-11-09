@@ -1,124 +1,127 @@
-import 'package:dust_flame_example/game/coin_dodge_game.dart';
-import 'package:dust_flame_example/game/falling_item.dart';
-import 'package:dust_flame_example/game/game_hud.dart';
+import 'package:dust_flame_example/game/action_panel.dart';
+import 'package:dust_flame_example/game/falling_token.dart';
+import 'package:dust_flame_example/game/game_layout.dart';
 import 'package:dust_flame_example/game/playfield.dart';
+import 'package:dust_flame_example/game/syntax_catch_game.dart';
 import 'package:dust_flame_example/main.dart';
-import 'package:dust_flame_example/state/game_access.generated.dart';
+import 'package:dust_flame_example/state.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Future<CoinDodgeGame> loadGame(WidgetTester tester) async {
-  await tester.pumpWidget(const CoinDodgeApp());
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 32));
+Future<SyntaxCatchGame> loadGame(WidgetTester tester) async {
+  await tester.pumpWidget(const SyntaxCatchApp());
+  await pumpFrames(tester, 4);
   return tester
-      .state<GameWidgetState<CoinDodgeGame>>(
-        find.byType(GameWidget<CoinDodgeGame>),
+      .state<GameWidgetState<SyntaxCatchGame>>(
+        find.byType(GameWidget<SyntaxCatchGame>),
       )
       .currentGame;
 }
 
-Playfield playfieldOf(CoinDodgeGame game) =>
+Future<void> pumpFrames(WidgetTester tester, int count) async {
+  for (var i = 0; i < count; i++) {
+    await tester.pump(const Duration(milliseconds: 60));
+  }
+}
+
+Playfield playfieldOf(SyntaxCatchGame game) =>
     game.world.descendants().whereType<Playfield>().single;
 
-void main() {
-  testWidgets('three states are independent and restart starts a fresh scope', (
-    tester,
-  ) async {
-    final game = await loadGame(tester);
-    final playfield = playfieldOf(game);
-    final coins = playfield.readCoinsViewModel();
-    final health = playfield.readHealthViewModel();
-    final level = playfield.readLevelViewModel();
-    expect(coins.state.count, 0);
-    expect(health.state.lives, 3);
-    expect(level.state.number, 1);
+Offset gamePoint(WidgetTester tester, double x, double y) {
+  final host = tester.getRect(find.byType(GameWidget<SyntaxCatchGame>));
+  final scale = host.width / GameLayout.width;
+  return Offset(host.left + x * scale, host.top + y * scale);
+}
 
-    coins.collect();
-    expect(health.state.lives, 3);
-    expect(level.state.number, 1);
-    health.hit();
-    expect(coins.state.count, 1);
-    expect(level.state.number, 1);
-    level.advance();
-    expect(coins.state.count, 1);
-    expect(health.state.lives, 2);
-
-    health.hit();
-    health.hit();
-    await tester.pump(const Duration(milliseconds: 16));
-    expect(game.world.descendants().whereType<GameOverPanel>(), hasLength(1));
-
-    game.restart();
-    for (var i = 0; i < 4; i++) {
-      await tester.pump(const Duration(milliseconds: 16));
+Future<void> catchChoice(
+  WidgetTester tester,
+  Playfield playfield, {
+  required bool correct,
+}) async {
+  final challenge = playfield.readChallengeViewModel();
+  final health = playfield.readHealthViewModel();
+  final matched = challenge.state.matched;
+  final lives = health.state.lives;
+  var choices = <FallingToken>[];
+  for (var frame = 0; frame < 30; frame++) {
+    choices = playfield.children
+        .whereType<FallingToken>()
+        .where((token) => token.isMounted && !token.isRemoving)
+        .toList();
+    if (choices.length == 3) break;
+    await pumpFrames(tester, 1);
+  }
+  expect(choices, hasLength(3));
+  expect(
+    choices.where((token) => token.token == challenge.state.expectedToken),
+    hasLength(1),
+  );
+  final choice = choices.firstWhere(
+    (token) => (token.token == challenge.state.expectedToken) == correct,
+  );
+  await tester.tapAt(gamePoint(tester, choice.x, GameLayout.paddleY - 60));
+  for (var frame = 0; frame < 50; frame++) {
+    await pumpFrames(tester, 1);
+    if (challenge.state.matched != matched || health.state.lives != lives) {
+      return;
     }
-    final restarted = playfieldOf(game);
-    expect(restarted.readCoinsViewModel(), isNot(same(coins)));
-    expect(restarted.readCoinsViewModel().state.count, 0);
-    expect(restarted.readHealthViewModel().state.lives, 3);
-    expect(restarted.readLevelViewModel().state.number, 1);
-    expect(game.world.descendants().whereType<GameOverPanel>(), isEmpty);
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
+  }
+  fail('The chosen token did not reach the paddle.');
+}
 
+void main() {
   testWidgets(
-    'tap input moves the paddle and a hazard collision loses a life',
+    'correct catches assemble a complete Dart snippet then start Rust',
     (tester) async {
       final game = await loadGame(tester);
       final playfield = playfieldOf(game);
-      final host = tester.getRect(find.byType(GameWidget<CoinDodgeGame>));
-      final scale = host.width / 360;
-      await tester.tapAt(
-        Offset(host.left + 280 * scale, host.top + 500 * scale),
-      );
-      await tester.pump(const Duration(milliseconds: 16));
-      expect(playfield.paddle.x, closeTo(280, 1));
+      final challenge = playfield.readChallengeViewModel();
+      final count = challenge.state.challenge.parts.length;
+      for (var i = 0; i < count; i++) {
+        await catchChoice(tester, playfield, correct: true);
+      }
+      await pumpFrames(tester, 3);
+      expect(challenge.state.complete, isTrue);
+      expect(playfield.readScoreViewModel().state.points, count);
+      expect(playfield.readHealthViewModel().state.lives, 3);
+      expect(game.world.descendants().whereType<ActionPanel>(), hasLength(1));
 
-      await tester.pump(const Duration(milliseconds: 800));
-      for (var i = 0; i < 3; i++) {
-        await tester.pump(const Duration(milliseconds: 16));
-      }
-      final item = playfield.children.whereType<FallingItem>().first;
-      expect(item.isCoin, isFalse);
-      await tester.tapAt(
-        Offset(host.left + item.x * scale, host.top + 500 * scale),
-      );
-      await tester.pump(const Duration(milliseconds: 16));
-      for (var i = 0; i < 30; i++) {
-        await tester.pump(const Duration(milliseconds: 60));
-      }
-      expect(playfield.readHealthViewModel().state.lives, 2);
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await pumpFrames(tester, 4);
+      expect(challenge.state.round, 1);
+      expect(challenge.state.challenge.language, 'Rust');
+      expect(challenge.state.matched, 0);
+      expect(playfield.readScoreViewModel().state.points, count);
+      expect(game.world.descendants().whereType<ActionPanel>(), isEmpty);
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
 
-  testWidgets('catching five coins advances the level through gameplay', (
-    tester,
-  ) async {
-    final game = await loadGame(tester);
-    final playfield = playfieldOf(game);
-    final host = tester.getRect(find.byType(GameWidget<CoinDodgeGame>));
-    final scale = host.width / 360;
-    for (var frame = 0; frame < 650; frame++) {
-      final items = playfield.children.whereType<FallingItem>().toList()
-        ..sort((a, b) => b.y.compareTo(a.y));
-      if (items.isNotEmpty) {
-        final next = items.first;
-        final target = next.isCoin ? next.x : (next.x < 180 ? 318.0 : 42.0);
-        await tester.tapAt(
-          Offset(host.left + target * scale, host.top + 500 * scale),
-        );
+  testWidgets(
+    'wrong catches lose lives without advancing code, restart resets each state',
+    (tester) async {
+      final game = await loadGame(tester);
+      final playfield = playfieldOf(game);
+      final oldScore = playfield.readScoreViewModel();
+      for (var i = 0; i < 3; i++) {
+        await catchChoice(tester, playfield, correct: false);
       }
-      await tester.pump(const Duration(milliseconds: 60));
-      if (playfield.readCoinsViewModel().state.count >= 5) break;
-    }
-    expect(playfield.readCoinsViewModel().state.count, greaterThanOrEqualTo(5));
-    expect(
-      playfield.readLevelViewModel().state.number,
-      greaterThanOrEqualTo(2),
-    );
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
+      await pumpFrames(tester, 3);
+      expect(playfield.readHealthViewModel().state.lives, 0);
+      expect(playfield.readChallengeViewModel().state.matched, 0);
+      expect(oldScore.state.points, 0);
+      expect(game.world.descendants().whereType<ActionPanel>(), hasLength(1));
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await pumpFrames(tester, 4);
+      final restarted = playfieldOf(game);
+      expect(restarted.readScoreViewModel(), isNot(same(oldScore)));
+      expect(restarted.readScoreViewModel().state.points, 0);
+      expect(restarted.readHealthViewModel().state.lives, 3);
+      expect(restarted.readChallengeViewModel().state.round, 0);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 }

@@ -103,8 +103,14 @@ class _ViewModelWatcher<VM extends ViewModelBase<Object?, ViewModelArgs>>
   VM? _model;
 
   void replaceCallback(void Function(VM viewModel) callback) {
+    final previous = _onChanged;
     _onChanged = callback;
-    if (_model != null) _notify();
+    try {
+      if (_model != null) _notify();
+    } catch (_) {
+      _onChanged = previous;
+      rethrow;
+    }
   }
 
   @override

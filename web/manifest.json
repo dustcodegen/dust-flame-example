@@ -1,11 +1,11 @@
 {
-    "name": "Coin Dodge",
-    "short_name": "Coin Dodge",
+    "name": "Syntax Catch",
+    "short_name": "Syntax Catch",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#081A20",
     "theme_color": "#081A20",
-    "description": "Catch coins and dodge hazards in a small Flame game.",
+    "description": "Catch Dart and Rust syntax tokens to complete code.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,38 +1,48 @@
 import 'dart:math';
-import 'package:flutter/painting.dart';
 
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 
-import '../state/game_access.generated.dart';
-import 'coin_dodge_game.dart';
-import 'falling_item.dart';
+import '../state.dart';
+import 'falling_token.dart';
+import 'game_layout.dart';
 import 'game_style.dart';
+import 'syntax_catch_game.dart';
 
 class Playfield extends PositionComponent
     with
         DragCallbacks,
         TapCallbacks,
         KeyboardHandler,
-        HasGameReference<CoinDodgeGame> {
-  Playfield() : super(size: Vector2(360, 640)) {
-    watchHealthViewModel((health) => _active = health.state.lives > 0);
-    watchLevelViewModel((level) => _level = level.state.number);
+        HasGameReference<SyntaxCatchGame> {
+  Playfield() : super(size: Vector2(GameLayout.width, GameLayout.height)) {
+    watchHealthViewModel((health) => _alive = health.state.lives > 0);
+    watchChallengeViewModel((challenge) {
+      if (_round != challenge.state.round) {
+        _clearWave();
+        _spawnIn = 0.6;
+      }
+      _round = challenge.state.round;
+      _complete = challenge.state.complete;
+    });
   }
 
   final paddle = RectangleComponent(
-    position: Vector2(180, 556),
-    size: Vector2(72, 14),
+    position: Vector2(GameLayout.width / 2, GameLayout.paddleY),
+    size: Vector2(88, 12),
     anchor: Anchor.center,
     paint: Paint()..color = GameStyle.mint,
   );
-  final _items = <FallingItem>[];
+  final _wave = <FallingToken>[];
   final _random = Random(7);
-  double _spawnIn = 0.8;
+  final _gridPaint = Paint()..color = GameStyle.line;
+  double _spawnIn = 0.6;
   double _direction = 0;
-  int _level = 1;
-  bool _active = true;
+  int _round = 0;
+  bool _alive = true;
+  bool _complete = false;
 
   @override
   Future<void> onLoad() async {
@@ -43,60 +53,84 @@ class Playfield extends PositionComponent
   @override
   void update(double dt) {
     super.update(dt);
-    if (!_active) return;
-    _moveTo(paddle.x + _direction * 340 * dt);
-    _spawnIn -= dt;
-    if (_spawnIn <= 0) {
-      final item = FallingItem(
-        isCoin: _random.nextDouble() > 0.3,
-        x: 30 + _random.nextDouble() * 300,
-      );
-      _items.add(item);
-      add(item);
-      _spawnIn += max(0.28, 0.85 - _level * 0.06);
+    if (!_alive || _complete) return;
+    _moveTo(paddle.x + _direction * 380 * dt);
+    if (_wave.isEmpty) {
+      _spawnIn -= dt;
+      if (_spawnIn <= 0) _spawnWave();
+      return;
     }
-    for (var i = _items.length - 1; i >= 0; i--) {
-      final item = _items[i];
-      final previousY = item.y;
-      item.y += (155 + _level * 26) * dt;
+    for (final token in _wave) {
+      final previousY = token.y;
+      token.y += (190 + min(_round, 4) * 12) * dt;
       final hit =
-          (item.x - paddle.x).abs() < paddle.width / 2 + item.radius &&
-          previousY - item.radius <= paddle.y + paddle.height / 2 &&
-          item.y + item.radius >= paddle.y - paddle.height / 2;
-      if (hit || item.y > 590) {
-        item.removeFromParent();
-        _items.removeAt(i);
-        if (hit) _catch(item);
-        if (!_active) break;
+          (token.x - paddle.x).abs() < paddle.width / 2 + token.width / 2 &&
+          previousY - token.height / 2 <= paddle.y + paddle.height / 2 &&
+          token.y + token.height / 2 >= paddle.y - paddle.height / 2;
+      if (hit) {
+        final accepted = readChallengeViewModel().accept(token.token);
+        if (accepted) {
+          readScoreViewModel().addPoint();
+        } else {
+          readHealthViewModel().hit();
+        }
+        _clearWave();
+        _spawnIn = 0.3;
+        return;
       }
     }
-  }
-
-  void _catch(FallingItem item) {
-    if (item.isCoin) {
-      final coins = readCoinsViewModel()..collect();
-      if (coins.state.count % 5 == 0) readLevelViewModel().advance();
-    } else {
-      readHealthViewModel().hit();
+    if (_wave.every((token) => token.y > GameLayout.despawnY)) {
+      _clearWave();
+      _spawnIn = 0.3;
     }
   }
 
-  void _moveTo(double x) => paddle.x = x.clamp(42, 318).toDouble();
+  void _spawnWave() {
+    final challenge = readChallengeViewModel().state;
+    final expected = challenge.expectedToken;
+    if (expected == null) return;
+    final distractors =
+        challenge.challenge.distractors
+            .where((token) => token != expected)
+            .toSet()
+            .toList()
+          ..shuffle(_random);
+    final choices = [expected, ...distractors.take(2)]..shuffle(_random);
+    for (var i = 0; i < choices.length; i++) {
+      final token = FallingToken(
+        token: choices[i],
+        x: GameLayout.laneCenters[i],
+      );
+      _wave.add(token);
+      add(token);
+    }
+  }
+
+  void _clearWave() {
+    for (final token in _wave) {
+      token.removeFromParent();
+    }
+    _wave.clear();
+  }
+
+  void _moveTo(double x) => paddle.x = x
+      .clamp(GameLayout.paddleMinX, GameLayout.paddleMaxX)
+      .toDouble();
 
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
-    if (_active) _moveTo(event.localPosition.x);
+    if (_alive && !_complete) _moveTo(event.localPosition.x);
   }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
-    if (_active) _moveTo(event.localEndPosition.x);
+    if (_alive && !_complete) _moveTo(event.localEndPosition.x);
   }
 
   @override
   void onTapDown(TapDownEvent event) {
-    if (_active) _moveTo(event.localPosition.x);
+    if (_alive && !_complete) _moveTo(event.localPosition.x);
   }
 
   @override
@@ -108,23 +142,25 @@ class Playfield extends PositionComponent
         keysPressed.contains(LogicalKeyboardKey.arrowRight) ||
         keysPressed.contains(LogicalKeyboardKey.keyD);
     _direction = (right ? 1.0 : 0.0) - (left ? 1.0 : 0.0);
-    if (!_active &&
-        event is KeyDownEvent &&
-        event.logicalKey == LogicalKeyboardKey.space) {
-      game.restart();
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.space) {
+      if (!_alive) game.restart();
+      if (_alive && _complete) readChallengeViewModel().next();
     }
     return !(left || right || event.logicalKey == LogicalKeyboardKey.space);
   }
 
   @override
   void render(Canvas canvas) {
-    final dots = Paint()..color = GameStyle.line;
-    for (var x = 30.0; x < 360; x += 30) {
-      for (var y = 160.0; y < 550; y += 30) {
-        canvas.drawCircle(Offset(x, y), 1, dots);
+    for (final x in GameLayout.laneCenters) {
+      for (var y = GameLayout.spawnY; y < GameLayout.floorY; y += 28) {
+        canvas.drawCircle(Offset(x, y), 1, _gridPaint);
       }
     }
-    canvas.drawLine(const Offset(24, 584), const Offset(336, 584), dots);
+    canvas.drawLine(
+      Offset(GameLayout.gutter, GameLayout.floorY),
+      Offset(GameLayout.width - GameLayout.gutter, GameLayout.floorY),
+      _gridPaint,
+    );
     super.render(canvas);
   }
 }

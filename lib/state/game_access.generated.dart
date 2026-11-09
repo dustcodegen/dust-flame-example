@@ -6,27 +6,24 @@ import 'package:flame/components.dart';
 import '../bridge/view_model_scope.dart';
 import 'game_models.dart';
 
-const ViewModelKey<CoinsViewModel> _coinsViewModelKey =
-    ViewModelKey(CoinsViewModel.new);
-const ViewModelKey<HealthViewModel> _healthViewModelKey =
-    ViewModelKey(HealthViewModel.new);
-const ViewModelKey<LevelViewModel> _levelViewModelKey =
-    ViewModelKey(LevelViewModel.new);
+const _challengeViewModelKey = ViewModelKey(ChallengeViewModel.new);
+const _healthViewModelKey = ViewModelKey(HealthViewModel.new);
+const _scoreViewModelKey = ViewModelKey(ScoreViewModel.new);
 
 extension GameViewModelAccess on Component {
-  CoinsViewModel readCoinsViewModel() => readViewModel(_coinsViewModelKey);
+  ChallengeViewModel readChallengeViewModel() =>
+      readViewModel(_challengeViewModelKey);
 
-  void watchCoinsViewModel(void Function(CoinsViewModel) callback) =>
-      watchViewModel(_coinsViewModelKey, callback);
+  void watchChallengeViewModel(void Function(ChallengeViewModel) callback) =>
+      watchViewModel(_challengeViewModelKey, callback);
 
   HealthViewModel readHealthViewModel() => readViewModel(_healthViewModelKey);
 
   void watchHealthViewModel(void Function(HealthViewModel) callback) =>
       watchViewModel(_healthViewModelKey, callback);
 
-  LevelViewModel readLevelViewModel() => readViewModel(_levelViewModelKey);
+  ScoreViewModel readScoreViewModel() => readViewModel(_scoreViewModelKey);
 
-  void watchLevelViewModel(void Function(LevelViewModel) callback) =>
-      watchViewModel(_levelViewModelKey, callback);
-
+  void watchScoreViewModel(void Function(ScoreViewModel) callback) =>
+      watchViewModel(_scoreViewModelKey, callback);
 }
