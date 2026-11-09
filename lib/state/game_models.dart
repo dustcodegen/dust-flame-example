@@ -1,20 +1,22 @@
 import 'package:dust_dart/derive.dart';
 import 'package:dust_flutter/state.dart';
 
+import 'syntax_challenges.dart';
+
 part 'game_models.g.dart';
 
 @Derive([Eq()])
-class CoinsState with _$CoinsState {
-  const CoinsState({this.count = 0});
+class ScoreState with _$ScoreState {
+  const ScoreState({this.points = 0});
 
-  final int count;
+  final int points;
 }
 
-@ViewModel(state: CoinsState)
-class CoinsViewModel extends $CoinsViewModel {
-  CoinsViewModel() : super(const ViewModelArgs());
+@ViewModel(state: ScoreState)
+class ScoreViewModel extends $ScoreViewModel {
+  ScoreViewModel() : super(const ViewModelArgs());
 
-  void collect() => emit(CoinsState(count: state.count + 1));
+  void addPoint() => emit(ScoreState(points: state.points + 1));
 }
 
 @Derive([Eq()])
@@ -34,15 +36,64 @@ class HealthViewModel extends $HealthViewModel {
 }
 
 @Derive([Eq()])
-class LevelState with _$LevelState {
-  const LevelState({this.number = 1});
+class ChallengeState with _$ChallengeState {
+  const ChallengeState({
+    this.round = 0,
+    this.matched = 0,
+    this.started = false,
+  });
 
-  final int number;
+  final int round;
+  final int matched;
+  final bool started;
+
+  SyntaxChallenge get challenge =>
+      syntaxChallenges[round % syntaxChallenges.length];
+  bool get complete => matched == challenge.parts.length;
+  String? get expectedToken => complete ? null : challenge.parts[matched].text;
 }
 
-@ViewModel(state: LevelState)
-class LevelViewModel extends $LevelViewModel {
-  LevelViewModel() : super(const ViewModelArgs());
+@ViewModel(state: ChallengeState)
+class ChallengeViewModel extends $ChallengeViewModel {
+  ChallengeViewModel() : super(const ViewModelArgs());
 
-  void advance() => emit(LevelState(number: state.number + 1));
+  bool chooseLanguage(String language) {
+    if (state.started) return false;
+    final index = syntaxChallenges.indexWhere(
+      (challenge) => challenge.language == language,
+    );
+    if (index < 0) return false;
+    emit(ChallengeState(round: index));
+    return true;
+  }
+
+  void start() {
+    if (!state.started) {
+      emit(
+        ChallengeState(
+          round: state.round,
+          matched: state.matched,
+          started: true,
+        ),
+      );
+    }
+  }
+
+  bool accept(String token) {
+    if (!state.started || state.complete || token != state.expectedToken) {
+      return false;
+    }
+    emit(
+      ChallengeState(
+        round: state.round,
+        matched: state.matched + 1,
+        started: true,
+      ),
+    );
+    return true;
+  }
+
+  void next() {
+    if (state.complete) emit(ChallengeState(round: state.round + 1));
+  }
 }

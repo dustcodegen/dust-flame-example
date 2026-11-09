@@ -1,17 +1,18 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
-import 'game/coin_dodge_game.dart';
+import 'game/syntax_catch_game.dart';
 import 'game/game_style.dart';
+import 'game/game_layout.dart';
 
-void main() => runApp(const CoinDodgeApp());
+void main() => runApp(const SyntaxCatchApp());
 
-class CoinDodgeApp extends StatelessWidget {
-  const CoinDodgeApp({super.key});
+class SyntaxCatchApp extends StatelessWidget {
+  const SyntaxCatchApp({super.key});
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Coin Dodge',
+    title: 'Syntax Catch',
     debugShowCheckedModeBanner: false,
     theme: ThemeData.dark(),
     home: Scaffold(
@@ -19,10 +20,10 @@ class CoinDodgeApp extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: AspectRatio(
-            aspectRatio: 360 / 640,
+            aspectRatio: GameLayout.width / GameLayout.height,
             child: ClipRect(
-              child: GameWidget<CoinDodgeGame>.controlled(
-                gameFactory: CoinDodgeGame.new,
+              child: GameWidget<SyntaxCatchGame>.controlled(
+                gameFactory: SyntaxCatchGame.new,
               ),
             ),
           ),

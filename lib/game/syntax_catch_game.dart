@@ -3,22 +3,23 @@ import 'package:flame/game.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/painting.dart';
 
-import '../bridge/view_model_scope.dart';
+import '../state.dart';
+import 'game_layout.dart';
 import 'game_hud.dart';
 import 'game_style.dart';
 import 'playfield.dart';
 
-class CoinDodgeGame extends FlameGame<World>
+class SyntaxCatchGame extends FlameGame<World>
     with HasKeyboardHandlerComponents<World> {
-  factory CoinDodgeGame() => CoinDodgeGame._(World());
+  factory SyntaxCatchGame() => SyntaxCatchGame._(World());
 
-  CoinDodgeGame._(World world)
+  SyntaxCatchGame._(World world)
     : super(
         world: world,
         camera: CameraComponent.withFixedResolution(
           world: world,
-          width: 360,
-          height: 640,
+          width: GameLayout.width,
+          height: GameLayout.height,
         ),
       ) {
     camera.viewfinder.anchor = Anchor.topLeft;
