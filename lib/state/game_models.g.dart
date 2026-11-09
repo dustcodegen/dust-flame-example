@@ -61,7 +61,8 @@ mixin _$ChallengeState {
         other is ChallengeState &&
             runtimeType == other.runtimeType &&
             other.round == self.round &&
-            other.matched == self.matched;
+            other.matched == self.matched &&
+            other.started == self.started;
   }
 
   @override
@@ -71,6 +72,7 @@ mixin _$ChallengeState {
       runtimeType,
       self.round,
       self.matched,
+      self.started,
     ]);
   }
 }

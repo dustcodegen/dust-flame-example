@@ -5,6 +5,7 @@ import 'package:dust_flame_example/game/playfield.dart';
 import 'package:dust_flame_example/game/syntax_catch_game.dart';
 import 'package:dust_flame_example/main.dart';
 import 'package:dust_flame_example/state.dart';
+import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +14,8 @@ import 'package:flutter_test/flutter_test.dart';
 Future<SyntaxCatchGame> loadGame(WidgetTester tester) async {
   await tester.pumpWidget(const SyntaxCatchApp());
   await pumpFrames(tester, 4);
+  await tester.sendKeyEvent(LogicalKeyboardKey.space);
+  await pumpFrames(tester, 2);
   return tester
       .state<GameWidgetState<SyntaxCatchGame>>(
         find.byType(GameWidget<SyntaxCatchGame>),
@@ -44,25 +47,22 @@ Future<void> catchChoice(
   final health = playfield.readHealthViewModel();
   final matched = challenge.state.matched;
   final lives = health.state.lives;
-  var choices = <FallingToken>[];
-  for (var frame = 0; frame < 30; frame++) {
-    choices = playfield.children
+  for (var frame = 0; frame < 160; frame++) {
+    final drops = playfield.children
         .whereType<FallingToken>()
         .where((token) => token.isMounted && !token.isRemoving)
         .toList();
-    if (choices.length == 3) break;
-    await pumpFrames(tester, 1);
-  }
-  expect(choices, hasLength(3));
-  expect(
-    choices.where((token) => token.token == challenge.state.expectedToken),
-    hasLength(1),
-  );
-  final choice = choices.firstWhere(
-    (token) => (token.token == challenge.state.expectedToken) == correct,
-  );
-  await tester.tapAt(gamePoint(tester, choice.x, GameLayout.paddleY - 60));
-  for (var frame = 0; frame < 50; frame++) {
+    if (drops.isNotEmpty) {
+      final nearest = drops.reduce((a, b) => a.y > b.y ? a : b);
+      final catchIt =
+          (nearest.token == challenge.state.expectedToken) == correct;
+      final x = catchIt
+          ? nearest.x
+          : nearest.x < GameLayout.width / 2
+          ? GameLayout.paddleMaxX
+          : GameLayout.paddleMinX;
+      await tester.tapAt(gamePoint(tester, x, GameLayout.paddleY - 60));
+    }
     await pumpFrames(tester, 1);
     if (challenge.state.matched != matched || health.state.lives != lives) {
       return;
@@ -72,6 +72,100 @@ Future<void> catchChoice(
 }
 
 void main() {
+  testWidgets(
+    'keyboard chooses a language before starting and locks it in play',
+    (tester) async {
+      await tester.pumpWidget(const SyntaxCatchApp());
+      await pumpFrames(tester, 4);
+      final game = tester
+          .state<GameWidgetState<SyntaxCatchGame>>(
+            find.byType(GameWidget<SyntaxCatchGame>),
+          )
+          .currentGame;
+      final challenge = playfieldOf(game).readChallengeViewModel();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
+      expect(challenge.state.challenge.language, 'Rust');
+      expect(challenge.state.started, isFalse);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+      expect(challenge.state.started, isTrue);
+      expect(challenge.state.challenge.language, 'Rust');
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      expect(challenge.state.challenge.language, 'Rust');
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets('a stalled frame cannot rush the rain through the catcher', (
+    tester,
+  ) async {
+    final game = await loadGame(tester);
+    final playfield = playfieldOf(game);
+    await pumpFrames(tester, 20);
+    final drops = playfield.children.whereType<FallingToken>().toList();
+    expect(drops, isNotEmpty);
+    final positions = drops.map((token) => token.y).toList();
+    game.update(5);
+    for (var index = 0; index < drops.length; index++) {
+      expect(drops[index].y - positions[index], closeTo(19, 0.01));
+    }
+    expect(playfield.readHealthViewModel().state.lives, 3);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('tokens rain individually and skipped pieces return for free', (
+    tester,
+  ) async {
+    final game = await loadGame(tester);
+    final playfield = playfieldOf(game);
+    final seen = <FallingToken>{};
+    final expected = playfield.readChallengeViewModel().state.expectedToken;
+    var repeated = 0;
+    var consecutiveWrongDrops = 0;
+    var lastSpawn = -100;
+    var sawOverlappingDrops = false;
+    for (var frame = 0; frame < 200; frame++) {
+      final drops = playfield.children
+          .whereType<FallingToken>()
+          .where((token) => token.isMounted && !token.isRemoving)
+          .toList();
+      final added = drops.where((token) => !seen.contains(token)).toList();
+      expect(added.length, lessThanOrEqualTo(1));
+      if (added.isNotEmpty) {
+        expect(frame - lastSpawn, greaterThanOrEqualTo(10));
+        lastSpawn = frame;
+        seen.addAll(added);
+        repeated += added.where((token) => token.token == expected).length;
+        consecutiveWrongDrops = added.single.token == expected
+            ? 0
+            : consecutiveWrongDrops + 1;
+        expect(consecutiveWrongDrops, lessThanOrEqualTo(2));
+      }
+      sawOverlappingDrops |= drops.length > 1;
+      if (drops.isNotEmpty) {
+        final nearest = drops.reduce((a, b) => a.y > b.y ? a : b);
+        await tester.tapAt(
+          gamePoint(
+            tester,
+            nearest.x < GameLayout.width / 2
+                ? GameLayout.paddleMaxX
+                : GameLayout.paddleMinX,
+            GameLayout.paddleY - 60,
+          ),
+        );
+      }
+      await pumpFrames(tester, 1);
+    }
+    expect(seen.length, greaterThan(10));
+    expect(sawOverlappingDrops, isTrue);
+    expect(repeated, greaterThanOrEqualTo(2));
+    expect(playfield.readChallengeViewModel().state.matched, 0);
+    expect(playfield.readHealthViewModel().state.lives, 3);
+    expect(playfield.readScoreViewModel().state.points, 0);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets(
     'correct catches assemble a complete Dart snippet then start Rust',
     (tester) async {
@@ -94,7 +188,11 @@ void main() {
       expect(challenge.state.challenge.language, 'Rust');
       expect(challenge.state.matched, 0);
       expect(playfield.readScoreViewModel().state.points, count);
-      expect(game.world.descendants().whereType<ActionPanel>(), isEmpty);
+      expect(challenge.state.started, isFalse);
+      expect(
+        game.world.descendants().whereType<ActionPanel>().single.ready,
+        isTrue,
+      );
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
@@ -107,6 +205,12 @@ void main() {
       final oldScore = playfield.readScoreViewModel();
       for (var i = 0; i < 3; i++) {
         await catchChoice(tester, playfield, correct: false);
+        expect(
+          playfield.children.whereType<TextComponent>().single.text,
+          contains(
+            'need ${playfield.readChallengeViewModel().state.expectedToken}',
+          ),
+        );
       }
       await pumpFrames(tester, 3);
       expect(playfield.readHealthViewModel().state.lives, 0);

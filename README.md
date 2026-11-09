@@ -1,14 +1,42 @@
 # Syntax Catch
 
-Catch the next token to complete a Dart or Rust program. The full code is shown
-above the playfield. The next token is gold, collected tokens are mint, and each
-wave mixes the required token with two distractors. A wrong catch costs a life.
-Missing a wave gives you another try. Complete the snippet to continue to the
-other language.
+<img src="docs/syntax-catch.png" alt="Syntax Catch ready screen" width="360">
+
+Choose a language tile or use Left/Right in the reading phase. Inspect its code,
+then choose **Start rain** or press Space when ready. Selecting a language previews
+its code without starting the rain. Each challenge begins with this reading
+phase, so you can inspect the full snippet at your own pace.
+
+Catch the next required token to assemble the snippet. Tokens enter the
+playfield individually in a continuous stream, with the same pace across
+languages. Move under `NEXT` and let unwanted tokens fall past the catcher.
+Skipping a token preserves your progress and lives. Catching a wrong token
+costs one life, and correct catches add points.
+
+The full target code stays visible in a code editor with line numbers. Collected
+code is icy cyan, the next required token is amber, and a progress bar and
+counter show how many parts you have collected. A missed required token returns
+in the stream. Complete the snippet, then choose **Next code** or press Space to
+open the next reading phase. Language selection is available before starting;
+the current language stays fixed during play.
 
 Drag or tap to position the catcher, or use Left/Right (A/D). Click the visible
-button or press Space to continue after a complete snippet or restart after
-three mistakes. The four exercises cover printing text and adding two numbers.
+button or press Space to start, continue, or return to the reading phase after
+three mistakes. The included challenges cover Dart, Rust, JavaScript, Python,
+Go, and SQL.
+
+Challenges are data in `lib/state/syntax_challenges.dart`. Each `SyntaxChallenge`
+declares a language label, ordered `CodePart` values, and distractors. A part's
+`before` text preserves spaces and line breaks in the displayed source. Add a
+challenge by extending this list; language choices come from the authored
+challenges. The game displays and matches code as text;
+it does not execute snippets or validate alternative programs. Check new
+examples with the relevant language tools.
+Keep snippets to four short lines for the current code preview; longer lessons
+need scrolling.
+
+[Game design notes](docs/game-design.md) explain the research, fairness rules,
+and tuning choices that still need player testing.
 
 Use Flutter 3.44.1 / Dart 3.12.1 and Dust CLI 0.3.1. The native runner targets
 macOS 12 or newer.
@@ -47,17 +75,20 @@ component lifecycle, including reparenting. The game explicitly removes its
 session subtree on detach, including while paused.
 
 `GameLayout` centralizes board geometry and spacing. `GameStyle` centralizes
-semantic color use and the type scale. The HUD uses aligned stat columns, a
-highlighted code panel, and a next-token cue. The shared action panel has a
-48-pixel button that activates on tap completion.
+semantic color use and the type scale. The terminal-inspired interface uses a
+line-number gutter, code progress bar, next-token cue, falling-token trails,
+and a bracket-shaped catcher. Language labels fit their stat column. The ready
+panel shows up to six language tiles at a time, with previous/next controls and
+a 48-pixel start button; buttons activate
+on tap completion.
 
 | Token | Role |
 | --- | --- |
-| Teal background / panel | Game surface and code card |
-| Mint | Collected syntax and catcher |
-| Gold | Next required token |
-| Coral | Remaining lives and mistake state |
-| Display / numeric / body / caption / token | Consistent text roles |
+| Charcoal `#191C22` / slate `#222731` | Game surface and code editor |
+| Icy cyan `#87D7E6` | Collected syntax and catcher |
+| Amber `#FFCA7A` | Next required token and selected language |
+| Coral `#E98582` | Remaining lives and mistake state |
+| Display / numeric / language / body / caption / token / code | Consistent text roles |
 
 The scope runtime in `lib/bridge/view_model_scope.dart` is a local prototype.
 `tool/generate.dart` reads `@ViewModel` declarations through the Dart analyzer AST
@@ -67,7 +98,7 @@ part of this review example and are candidates for later Dust integration.
 
 The local generator supports public, concrete, non-generic ViewModels with an
 unnamed constructor callable without arguments. Required dependencies receive a
-diagnostic. The choice order uses a fixed random seed for repeatable reviews.
+diagnostic. The token stream uses a fixed random seed for repeatable reviews.
 
 ```sh
 dart run tool/generate.dart --check
@@ -79,4 +110,5 @@ flutter build web
 
 `--check` detects stale generated helpers without writing files, then runs
 `dust check`. Tests cover generator validation, lazy scope ownership, watcher
-rebinding and cleanup, correct/wrong catches, full-code completion, and reset.
+rebinding and cleanup, the reading phase, language selection, correct/wrong
+catches, full-code completion, and reset.

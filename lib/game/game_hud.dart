@@ -3,6 +3,7 @@ import 'package:flutter/painting.dart';
 
 import '../state.dart';
 import 'action_panel.dart';
+import 'code_preview.dart';
 import 'game_layout.dart';
 import 'game_style.dart';
 
@@ -19,38 +20,46 @@ class GameHud extends Component {
     watchChallengeViewModel((challenge) {
       final state = challenge.state;
       _language.text = state.challenge.language.toUpperCase();
-      _round.text = 'ROUND ${state.round + 1}';
+      final labelWidth =
+          GameLayout.contentWidth / GameLayout.statCenters.length -
+          GameLayout.codeInset;
+      _language.scale.setAll(
+        (labelWidth / _language.width).clamp(0.0, 1.0).toDouble(),
+      );
+      _round.text = 'LESSON ${state.round + 1}';
       _targetTitle.text = state.complete
           ? 'Code complete'
           : 'NEXT  ${state.expectedToken}';
       _targetTitle.textRenderer = GameStyle.caption(
         color: state.complete ? GameStyle.mint : GameStyle.gold,
       );
-      _matched.text = '${state.matched} / ${state.challenge.parts.length}';
+      _matched.text =
+          '${state.matched} / ${state.challenge.parts.length} collected';
       _code.show(state.challenge.parts, state.matched);
+      _started = state.started;
       _complete = state.complete;
       _updatePanel();
     });
   }
 
   final _score = TextComponent(
-    anchor: Anchor.topCenter,
-    position: Vector2(GameLayout.statCenters[0], 100),
+    anchor: Anchor.center,
+    position: Vector2(GameLayout.statCenters[0], 132),
     textRenderer: GameStyle.numeric(color: GameStyle.gold),
   );
   final _health = TextComponent(
-    anchor: Anchor.topCenter,
-    position: Vector2(GameLayout.statCenters[1], 100),
+    anchor: Anchor.center,
+    position: Vector2(GameLayout.statCenters[1], 132),
     textRenderer: GameStyle.numeric(color: GameStyle.coral),
   );
   final _language = TextComponent(
-    anchor: Anchor.topCenter,
-    position: Vector2(GameLayout.statCenters[2], 100),
-    textRenderer: GameStyle.numeric(color: GameStyle.mint),
+    anchor: Anchor.center,
+    position: Vector2(GameLayout.statCenters[2], 132),
+    textRenderer: GameStyle.language(),
   );
   final _round = TextComponent(
     anchor: Anchor.topCenter,
-    position: Vector2(GameLayout.statCenters[2], 143),
+    position: Vector2(GameLayout.statCenters[2], 99),
     textRenderer: GameStyle.caption(),
   );
   final _targetTitle = TextComponent(
@@ -65,12 +74,17 @@ class GameHud extends Component {
     ),
     textRenderer: GameStyle.caption(),
   );
-  final _code = _CodePreview();
+  final _code = CodePreview();
   int _lives = 3;
+  bool _started = false;
   bool _complete = false;
   ActionPanel? _panel;
 
   static final _panelPaint = Paint()..color = GameStyle.panel;
+  static final _borderPaint = Paint()
+    ..color = GameStyle.line
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1;
   static final _statsPanel = RRect.fromRectAndRadius(
     GameLayout.statsBounds,
     const Radius.circular(GameLayout.panelRadius),
@@ -90,7 +104,7 @@ class GameHud extends Component {
         textRenderer: GameStyle.display(),
       ),
       TextComponent(
-        text: 'Catch the next token. Wrong picks cost a life.',
+        text: 'Catch NEXT. Let other tokens fall.',
         position: Vector2(GameLayout.gutter, 63),
         textRenderer: GameStyle.body(),
       ),
@@ -104,10 +118,10 @@ class GameHud extends Component {
       _matched,
       _code,
       TextComponent(
-        text: 'Drag or use the arrow keys / A D',
+        text: 'ARROW KEYS / A D / DRAG TO MOVE',
         anchor: Anchor.center,
         position: Vector2(GameLayout.width / 2, GameLayout.footerY),
-        textRenderer: GameStyle.body(),
+        textRenderer: GameStyle.caption(),
       ),
     ]);
   }
@@ -115,20 +129,21 @@ class GameHud extends Component {
   TextComponent _label(String label, double x) => TextComponent(
     text: label,
     anchor: Anchor.topCenter,
-    position: Vector2(x, 143),
+    position: Vector2(x, 99),
     textRenderer: GameStyle.caption(),
   );
 
   void _updatePanel() {
-    if (_lives > 0 && !_complete) {
+    if (_lives > 0 && _started && !_complete) {
       _panel?.removeFromParent();
       _panel = null;
       return;
     }
+    final ready = _lives > 0 && !_started;
     final complete = _lives > 0 && _complete;
-    if (_panel?.complete == complete) return;
+    if (_panel?.complete == complete && _panel?.ready == ready) return;
     _panel?.removeFromParent();
-    final panel = ActionPanel(complete: complete);
+    final panel = ActionPanel(complete: complete, ready: ready);
     _panel = panel;
     add(panel);
   }
@@ -136,57 +151,14 @@ class GameHud extends Component {
   @override
   void render(Canvas canvas) {
     canvas.drawRRect(_statsPanel, _panelPaint);
+    canvas.drawRRect(_statsPanel, _borderPaint);
     canvas.drawRRect(_codePanel, _panelPaint);
-    super.render(canvas);
-  }
-}
-
-class _CodePreview extends PositionComponent {
-  _CodePreview()
-    : super(
-        position: Vector2(
-          GameLayout.gutter + GameLayout.codeInset,
-          GameLayout.codeTop,
-        ),
-        size: Vector2(GameLayout.codeWidth, GameLayout.codeHeight),
-      );
-
-  TextPainter? _painter;
-
-  void show(List<CodePart> parts, int matched) {
-    final spans = <TextSpan>[];
-    for (var index = 0; index < parts.length; index++) {
-      final part = parts[index];
-      final color = index < matched
-          ? GameStyle.mint
-          : index == matched
-          ? GameStyle.gold
-          : GameStyle.muted;
-      spans.add(TextSpan(text: part.before));
-      spans.add(
-        TextSpan(
-          text: part.text,
-          style: TextStyle(color: color),
-        ),
-      );
+    canvas.drawRRect(_codePanel, _borderPaint);
+    final columnWidth = GameLayout.contentWidth / 3;
+    for (var column = 1; column < 3; column++) {
+      final x = GameLayout.gutter + columnWidth * column;
+      canvas.drawLine(Offset(x, 100), Offset(x, 148), _borderPaint);
     }
-    _painter?.dispose();
-    _painter = TextPainter(
-      text: TextSpan(style: GameStyle.code, children: spans),
-      textDirection: TextDirection.ltr,
-    )..layout(maxWidth: GameLayout.codeWidth);
-  }
-
-  @override
-  void render(Canvas canvas) {
-    _painter?.paint(canvas, Offset.zero);
     super.render(canvas);
-  }
-
-  @override
-  void onRemove() {
-    _painter?.dispose();
-    _painter = null;
-    super.onRemove();
   }
 }

@@ -37,10 +37,15 @@ class HealthViewModel extends $HealthViewModel {
 
 @Derive([Eq()])
 class ChallengeState with _$ChallengeState {
-  const ChallengeState({this.round = 0, this.matched = 0});
+  const ChallengeState({
+    this.round = 0,
+    this.matched = 0,
+    this.started = false,
+  });
 
   final int round;
   final int matched;
+  final bool started;
 
   SyntaxChallenge get challenge =>
       syntaxChallenges[round % syntaxChallenges.length];
@@ -52,9 +57,39 @@ class ChallengeState with _$ChallengeState {
 class ChallengeViewModel extends $ChallengeViewModel {
   ChallengeViewModel() : super(const ViewModelArgs());
 
+  bool chooseLanguage(String language) {
+    if (state.started) return false;
+    final index = syntaxChallenges.indexWhere(
+      (challenge) => challenge.language == language,
+    );
+    if (index < 0) return false;
+    emit(ChallengeState(round: index));
+    return true;
+  }
+
+  void start() {
+    if (!state.started) {
+      emit(
+        ChallengeState(
+          round: state.round,
+          matched: state.matched,
+          started: true,
+        ),
+      );
+    }
+  }
+
   bool accept(String token) {
-    if (state.complete || token != state.expectedToken) return false;
-    emit(ChallengeState(round: state.round, matched: state.matched + 1));
+    if (!state.started || state.complete || token != state.expectedToken) {
+      return false;
+    }
+    emit(
+      ChallengeState(
+        round: state.round,
+        matched: state.matched + 1,
+        started: true,
+      ),
+    );
     return true;
   }
 
